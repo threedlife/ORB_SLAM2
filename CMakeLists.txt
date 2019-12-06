@@ -44,6 +44,7 @@ ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${CMAKE_SOURCE_DIR}/Thirdparty/OpenNI2/Include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -98,6 +99,10 @@ target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
+
+add_executable(mono_uvc
+Examples/Monocular/mono_uvc.cc)
+target_link_libraries(mono_uvc ${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/Thirdparty/OpenNI2/Redist/libOpenNI2.so)
 
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
