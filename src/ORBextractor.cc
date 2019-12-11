@@ -69,7 +69,6 @@
 #include <type_traits>
 #include <utility>
 
-
 using namespace cv;
 using namespace std;
 
@@ -80,14 +79,15 @@ const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
 
-
+// compute feature angle, u_max stores pre-computed end of rows in a circular patch
 static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 {
     int m_01 = 0, m_10 = 0;
 
     const uchar* center = &image.at<uchar> (cvRound(pt.y), cvRound(pt.x));
 
-    // Treat the center line differently, v=0
+    // Treat the center line differently, v=0, i.e. x axis
+    // Since v=0 on x axis, no need to sum up for m_01 here
     for (int u = -HALF_PATCH_SIZE; u <= HALF_PATCH_SIZE; ++u)
         m_10 += u * center[u];
 
@@ -101,12 +101,13 @@ static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
         for (int u = -d; u <= d; ++u)
         {
             int val_plus = center[u + v*step], val_minus = center[u - v*step];
-            v_sum += (val_plus - val_minus);
+            v_sum += (val_plus - val_minus);    // it should be '-' not '+', considering the sign of v
             m_10 += u * (val_plus + val_minus);
         }
         m_01 += v * v_sum;
     }
 
+    // returns value in degrees from 0 to 360
     return fastAtan2((float)m_01, (float)m_10);
 }
 
@@ -116,12 +117,14 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
                                  const Mat& img, const Point* pattern,
                                  uchar* desc)
 {
-    float angle = (float)kpt.angle*factorPI;
+    float angle = (float)kpt.angle*factorPI;    // convert degree to rad
     float a = (float)cos(angle), b = (float)sin(angle);
 
     const uchar* center = &img.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
     const int step = (int)img.step;
 
+    // p* = R*p, wherein p=[x, y], R=[cos(angle)  -sin(angle)
+    //                                sin(angle)   cos(angle)]
     #define GET_VALUE(idx) \
         center[cvRound(pattern[idx].x*b + pattern[idx].y*a)*step + \
                cvRound(pattern[idx].x*a - pattern[idx].y*b)]
@@ -153,7 +156,7 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
     #undef GET_VALUE
 }
 
-
+// 256 random pair of points to be compared for each patch (31x31), in order to calculate descriptor
 static int bit_pattern_31_[256*4] =
 {
     8,-3, 9,5/*mean (0), correlation (0)*/,
@@ -543,10 +546,11 @@ void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNo
 
 }
 
+// distribute keypoints into multiple octave nodes, each of which contains one keypoint with highest response value
 vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                        const int &maxX, const int &minY, const int &maxY, const int &N, const int &level)
 {
-    // Compute how many initial nodes   
+    // Compute how many initial nodes based on width/height ratio  
     const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
 
     const float hX = static_cast<float>(maxX-minX)/nIni;
@@ -573,12 +577,14 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
     for(size_t i=0;i<vToDistributeKeys.size();i++)
     {
         const cv::KeyPoint &kp = vToDistributeKeys[i];
+        // distribute keypoints to each vpIniNodes
         vpIniNodes[kp.pt.x/hX]->vKeys.push_back(kp);
     }
 
     list<ExtractorNode>::iterator lit = lNodes.begin();
 
-    while(lit!=lNodes.end())
+    // 1) mark bNoMore = true if only 1 keypoint inside the node; 2) remove the node if no keypoint inside; 3) goes on to divid if >1 keypoints 
+    while (lit != lNodes.end())
     {
         if(lit->vKeys.size()==1)
         {
@@ -745,7 +751,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
         }
     }
 
-    // Retain the best point in each node
+    // Retain the best (ONE) point in each node
     vector<cv::KeyPoint> vResultKeys;
     vResultKeys.reserve(nfeatures);
     for(list<ExtractorNode>::iterator lit=lNodes.begin(); lit!=lNodes.end(); lit++)
@@ -773,6 +779,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 {
     allKeypoints.resize(nlevels);
 
+    // divid into 30x30 grids
     const float W = 30;
 
     for (int level = 0; level < nlevels; ++level)
@@ -788,7 +795,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         const float width = (maxBorderX-minBorderX);
         const float height = (maxBorderY-minBorderY);
 
-        const int nCols = width/W;
+        const int nCols = width/W;      // C++ truncates float to int by default
         const int nRows = height/W;
         const int wCell = ceil(width/nCols);
         const int hCell = ceil(height/nRows);
@@ -1047,6 +1054,7 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
 
+// This function computes ORB features, NOT ComputeKeyPointsOld
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
                       OutputArray _descriptors)
 { 
@@ -1059,6 +1067,7 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
     // Pre-compute the scale pyramid
     ComputePyramid(image);
 
+    // allKeypoints stores all keypoints on every level
     vector < vector<KeyPoint> > allKeypoints;
     ComputeKeyPointsOctTree(allKeypoints);
     //ComputeKeyPointsOld(allKeypoints);
@@ -1072,8 +1081,8 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
         _descriptors.release();
     else
     {
-        _descriptors.create(nkeypoints, 32, CV_8U);
-        descriptors = _descriptors.getMat();
+        _descriptors.create(nkeypoints, 32, CV_8U);     // 32 bytes = 256 bits
+        descriptors = _descriptors.getMat();        // getMat()将传入的InputArray/OutputArray参数转换为Mat结构
     }
 
     _keypoints.clear();
@@ -1093,6 +1102,8 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
         GaussianBlur(workingMat, workingMat, Size(7, 7), 2, 2, BORDER_REFLECT_101);
 
         // Compute the descriptors
+        // TODO: why compute descriptor on blurred images, not original images?
+        // See zhuanlan.zhihu.com/p/91479558, Gaussian blur increases robustness of descriptor against noise  
         Mat desc = descriptors.rowRange(offset, offset + nkeypointsLevel);
         computeDescriptors(workingMat, keypoints, desc, pattern);
 
@@ -1125,17 +1136,17 @@ void ORBextractor::ComputePyramid(cv::Mat image)
         if( level != 0 )
         {
             resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
-
+            // TODO: temp seems not used, can we delete this? what is BORDER_REFLECT_101+BORDER_ISOLATED border type?
             copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
-                           BORDER_REFLECT_101+BORDER_ISOLATED);            
+                           BORDER_REFLECT_101+BORDER_ISOLATED);
         }
         else
         {
+            // initialize level 0 map since temp and mvImagePyramid[0] shares the same pointer
             copyMakeBorder(image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101);            
-        }
+        } 
     }
-
 }
 
 } //namespace ORB_SLAM

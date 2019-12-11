@@ -102,11 +102,13 @@ protected:
 
     std::vector<int> mnFeaturesPerLevel;
 
+    //This is for orientation
+    // pre-compute the end of a row in a circular patch
     std::vector<int> umax;
 
     std::vector<float> mvScaleFactor;
     std::vector<float> mvInvScaleFactor;    
-    std::vector<float> mvLevelSigma2;
+    std::vector<float> mvLevelSigma2;   // = mvScaleFactor[i]*mvScaleFactor[i]
     std::vector<float> mvInvLevelSigma2;
 };
 
