@@ -35,11 +35,15 @@ class KeyFrame;
 class Map;
 class Frame;
 
-
+// MapPoint is the bridge between keyframes and observations(keypoints)
+//
+//         KeyFrame  <--- N:1 ---  MapPoint  --- 1:N --->  Observations (Keypoints)
+//                   ---- 1:N -->            <-- 1:1 ----
 class MapPoint
 {
 public:
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
+    // Param idxF: index of the keypoint inside the Frame
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
 
     void SetWorldPos(const cv::Mat &Pos);
@@ -51,6 +55,7 @@ public:
     std::map<KeyFrame*,size_t> GetObservations();
     int Observations();
 
+    // add index of MapPoint observable by the KF into the KF-index map mObservations
     void AddObservation(KeyFrame* pKF,size_t idx);
     void EraseObservation(KeyFrame* pKF);
 
@@ -59,7 +64,8 @@ public:
 
     void SetBadFlag();
     bool isBad();
-
+    
+    // Replace MP after loop closure
     void Replace(MapPoint* pMP);    
     MapPoint* GetReplaced();
 
@@ -70,10 +76,13 @@ public:
         return mnFound;
     }
 
+    // Compute the best (min mean distance to all observations) descriptor for the MapPoint, since one MapPoint can be observed by many keyframes. 
+    // It shall be called after keyframe is inserted 
     void ComputeDistinctiveDescriptors();
 
     cv::Mat GetDescriptor();
 
+    // Update normal and depth (max/min distance) by averaging all observations of the MapPoint
     void UpdateNormalAndDepth();
 
     float GetMinDistanceInvariance();
@@ -137,7 +146,15 @@ protected:
      bool mbBad;
      MapPoint* mpReplaced;
 
-     // Scale invariance distances
+     /* near features can be observed at higher level; far features can be observed at higher resolution
+                      __
+        Nearer      /____\      level: n-1 ----> dmin,   d/dmin = 1.2^(n-1 - m)
+                   /______\
+                  /________\    level: m   ----> d,      m = ceil(log(dmax/d) / log(1.2))
+        Farther  /__________\   
+                /____________\  level: 0   ----> dmax,   dmax/d = 1.2^m
+     */
+     // Scale invariance distances, i.e. from what range the feature can be observed across all scale levels
      float mfMinDistance;
      float mfMaxDistance;
 

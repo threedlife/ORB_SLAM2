@@ -90,6 +90,7 @@ public:
     // Compute the cell of a keypoint (return false if outside the grid)
     bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
 
+    // Get keypoints inside a rect centered at [x, y] with half width r and level between min and max levels
     vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel=-1, const int maxLevel=-1) const;
 
     // Search a match for each keypoint in the left image to a keypoint in the right image.
@@ -132,8 +133,8 @@ public:
     // Far points are inserted as in the monocular case from 2 views.
     float mThDepth;
 
-    // Number of KeyPoints.
-    int N;
+    // Number of KeyPoints in the left image.
+    int N;  // = mvKeys.size()
 
     // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
     // In the stereo case, mvKeysUn is redundant as images must be rectified.
@@ -143,7 +144,7 @@ public:
 
     // Corresponding stereo coordinate and depth for each keypoint.
     // "Monocular" keypoints have a negative value.
-    std::vector<float> mvuRight;
+    std::vector<float> mvuRight;    // u-axis disparity comparing to the left image of all the N keypoints
     std::vector<float> mvDepth;
 
     // Bag of Words Vector structures.
@@ -160,9 +161,10 @@ public:
     std::vector<bool> mvbOutlier;
 
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
-    static float mfGridElementWidthInv;
+    // ORB-SLAM2 divides frame into [FRAME_GRID_COLS x FRAME_GRID_ROWS] grids
+    static float mfGridElementWidthInv; // = static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX)
     static float mfGridElementHeightInv;
-    std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+    std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS]; //[FRAME_GRID_COLS x FRAME_GRID_ROWS] 2D array of vectors, each of which stores index of keypoints inside the grid
 
     // Camera pose.
     cv::Mat mTcw;

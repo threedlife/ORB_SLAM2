@@ -485,6 +485,8 @@ void Frame::ComputeStereoMatches()
     const int nRows = mpORBextractorLeft->mvImagePyramid[0].rows;
 
     //Assign keypoints to row table
+    // Construct a band [+- 2.0f*mvScaleFactors] around each keypoint of the right image, and search a match keypoint inside the band of left image only, to improve matching efficiency
+    // Each row of vRowIndices stores the index of all right image keypoints whose matched keypoints shall be inside the band 
     vector<vector<size_t> > vRowIndices(nRows,vector<size_t>());
 
     for(int i=0; i<nRows; i++)
@@ -505,11 +507,12 @@ void Frame::ComputeStereoMatches()
     }
 
     // Set limits for search
-    const float minZ = mb;
-    const float minD = 0;
+    const float minZ = mb;  // Z distance = mb*f/disparity
+    const float minD = 0;   // D = disparity
     const float maxD = mbf/minZ;
 
     // For each left keypoint search a match in the right image
+    // Match based on SAD (sum of absolute difference) algorithm, wherein the difference means ORB descriptor distance
     vector<pair<int, int> > vDistIdx;
     vDistIdx.reserve(N);
 
@@ -526,7 +529,7 @@ void Frame::ComputeStereoMatches()
             continue;
 
         const float minU = uL-maxD;
-        const float maxU = uL-minD;
+        const float maxU = uL-minD;     // U cooridinate of the corresponding keypoint on the right image should not be greater than the left one by definition
 
         if(maxU<0)
             continue;
@@ -542,6 +545,7 @@ void Frame::ComputeStereoMatches()
             const size_t iR = vCandidates[iC];
             const cv::KeyPoint &kpR = mvKeysRight[iR];
 
+            // Only run matching across neighboring levels
             if(kpR.octave<levelL-1 || kpR.octave>levelL+1)
                 continue;
 
@@ -670,7 +674,7 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
         if(d>0)
         {
             mvDepth[i] = d;
-            mvuRight[i] = kpU.pt.x-mbf/d;
+            mvuRight[i] = kpU.pt.x - mbf / d; // disparity = mvuRight - mvuLeft = mbf/mvDepth
         }
     }
 }

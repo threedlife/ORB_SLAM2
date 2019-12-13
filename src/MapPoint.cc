@@ -109,11 +109,11 @@ KeyFrame* MapPoint::GetReferenceKeyFrame()
 void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
-    if(mObservations.count(pKF))
+    if(mObservations.count(pKF))        // count(key) returns 1 if the key exists in the map 
         return;
     mObservations[pKF]=idx;
 
-    if(pKF->mvuRight[idx]>=0)
+    if(pKF->mvuRight[idx]>=0)   // if the disparity on the right image is non-negative (-1 default value)
         nObs+=2;
     else
         nObs++;
@@ -203,6 +203,7 @@ void MapPoint::Replace(MapPoint* pMP)
         mpReplaced = pMP;
     }
 
+    // check and add observations from (this) object to the new pMP object
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
     {
         // Replace measurement in keyframe
@@ -210,7 +211,7 @@ void MapPoint::Replace(MapPoint* pMP)
 
         if(!pMP->IsInKeyFrame(pKF))
         {
-            pKF->ReplaceMapPointMatch(mit->second, pMP);
+            pKF->ReplaceMapPointMatch(mit->second, pMP);     
             pMP->AddObservation(pKF,mit->second);
         }
         else

@@ -30,6 +30,7 @@
 namespace ORB_SLAM2
 {
 
+// Converts OpenCV mats to Eigen or g2o matrixs
 class Converter
 {
 public:
