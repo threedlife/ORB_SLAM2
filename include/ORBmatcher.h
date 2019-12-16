@@ -33,7 +33,7 @@
 
 namespace ORB_SLAM2
 {
-
+// ORBmatcher class mainly provides algorithms for finding matches among (Key)Frames and MapPoints, in order to increase number of MapPoints for each KeyFrame
 class ORBmatcher
 {    
 public:

@@ -45,6 +45,10 @@ class MapPoint;
 class Frame;
 class KeyFrameDatabase;
 
+// KeyFrame class handles 3 types of data and operations. Whenever a KF is added/erased/updated, remember to update the following 3 types of data
+// 1) Covisibility Graph
+// 2) Spanning Tree
+// 3) MapPoints
 class KeyFrame
 {
 public:
@@ -231,7 +235,7 @@ protected:
 
     // Spanning Tree and Loop Edges
     bool mbFirstConnection;
-    // Every KF has ONE parent KF, but may have N children KFs
+    // Every KF has ONE parent KF, but may have N children KFs, i.e. parent KF  1:1  this KF  1:N  children KFs
     KeyFrame* mpParent;
     std::set<KeyFrame*> mspChildrens;
     std::set<KeyFrame*> mspLoopEdges;

@@ -456,8 +456,8 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
     mnFeaturesPerLevel[nlevels-1] = std::max(nfeatures - sumFeatures, 0);
 
     const int npoints = 512;
-    const Point* pattern0 = (const Point*)bit_pattern_31_;
-    std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
+    const Point* pattern0 = (const Point*)bit_pattern_31_;  // convert int pointer to cv::Point pointer
+    std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));   // copy data to pattern in cv::Point vector format
 
     //This is for orientation
     // pre-compute the end of a row in a circular patch
@@ -1130,6 +1130,7 @@ void ORBextractor::ComputePyramid(cv::Mat image)
         Size sz(cvRound((float)image.cols*scale), cvRound((float)image.rows*scale));
         Size wholeSize(sz.width + EDGE_THRESHOLD*2, sz.height + EDGE_THRESHOLD*2);
         Mat temp(wholeSize, image.type()), masktemp;
+        // Set size of mvImagePyramid[level] to sz
         mvImagePyramid[level] = temp(Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, sz.width, sz.height));
 
         // Compute the resized image
