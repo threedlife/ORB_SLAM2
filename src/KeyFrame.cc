@@ -57,6 +57,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
 {
     mnId=nNextId++;
 
+    // Clone grid instead of using same pointer
     mGrid.resize(mnGridCols);
     for(int i=0; i<mnGridCols;i++)
     {
@@ -90,7 +91,7 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
 
     Twc = cv::Mat::eye(4,4,Tcw.type());
     Rwc.copyTo(Twc.rowRange(0,3).colRange(0,3));
-    Ow.copyTo(Twc.rowRange(0,3).col(3));
+    Ow.copyTo(Twc.rowRange(0,3).col(3));    // Ow equals translate
     cv::Mat center = (cv::Mat_<float>(4,1) << mHalfBaseline, 0 , 0, 1);
     Cw = Twc*center;
 }
@@ -160,7 +161,7 @@ void KeyFrame::UpdateBestCovisibles()
     list<int> lWs;
     for(size_t i=0, iend=vPairs.size(); i<iend;i++)
     {
-        lKFs.push_front(vPairs[i].second);
+        lKFs.push_front(vPairs[i].second);  // std::sort function returns ascending order by default
         lWs.push_front(vPairs[i].first);
     }
 
@@ -200,6 +201,7 @@ vector<KeyFrame*> KeyFrame::GetCovisiblesByWeight(const int &w)
     if(mvpOrderedConnectedKeyFrames.empty())
         return vector<KeyFrame*>();
 
+    // upper_bound returns the index of the last element with larger value than the given input w
     vector<int>::iterator it = upper_bound(mvOrderedWeights.begin(),mvOrderedWeights.end(),w,KeyFrame::weightComp);
     if(it==mvOrderedWeights.end())
         return vector<KeyFrame*>();
@@ -353,7 +355,7 @@ void KeyFrame::UpdateConnections()
         if(mit->second>=th)
         {
             vPairs.push_back(make_pair(mit->second,mit->first));
-            (mit->first)->AddConnection(this,mit->second);
+            (mit->first)->AddConnection(this,mit->second);  // add this KF to mit-first KF, or update weight if already exists
         }
     }
 
@@ -376,15 +378,16 @@ void KeyFrame::UpdateConnections()
         unique_lock<mutex> lockCon(mMutexConnections);
 
         // mspConnectedKeyFrames = spConnectedKeyFrames;
+        // Update co-visibility graph of this KF
         mConnectedKeyFrameWeights = KFcounter;
         mvpOrderedConnectedKeyFrames = vector<KeyFrame*>(lKFs.begin(),lKFs.end());
         mvOrderedWeights = vector<int>(lWs.begin(), lWs.end());
 
         if(mbFirstConnection && mnId!=0)
         {
-            mpParent = mvpOrderedConnectedKeyFrames.front();
-            mpParent->AddChild(this);
-            mbFirstConnection = false;
+            mpParent = mvpOrderedConnectedKeyFrames.front();    // .front() of a vector returns a reference to the first element
+            mpParent->AddChild(this);   // Update spanning-tree, i.e. add the best co-visible KF as the parent of this KF
+            mbFirstConnection = false;  // Note that parent will be added only running this UpdateConnections function the first time
         }
 
     }
