@@ -63,13 +63,20 @@ public:
     void ComputeBoW();
 
     // Covisibility graph functions
+    // Add KeyFrame pKF into the connections to this KF, and set weight to the input weight value 
     void AddConnection(KeyFrame* pKF, const int &weight);
     void EraseConnection(KeyFrame* pKF);
+    // Update co-visibility graph, i.e. update this and all other co-visible KFs if: 
+    // 1) the KFs have >=15 co-visible MapPoints with this KF, or 
+    // 2) the KF has the best co-visibility with this KF if none >=15
     void UpdateConnections();
+    // Called after AddConnection(), UpdateConnections() or EraseConnection(). It sorts all mConnectedKeyFrameWeights by weights in descending order
     void UpdateBestCovisibles();
     std::set<KeyFrame *> GetConnectedKeyFrames();
     std::vector<KeyFrame* > GetVectorCovisibleKeyFrames();
+    // Get N best connected KFs 
     std::vector<KeyFrame*> GetBestCovisibilityKeyFrames(const int &N);
+    // Get best connected KFs with weights higher than w
     std::vector<KeyFrame*> GetCovisiblesByWeight(const int &w);
     int GetWeight(KeyFrame* pKF);
 
@@ -92,6 +99,7 @@ public:
     void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
     std::set<MapPoint*> GetMapPoints();
     std::vector<MapPoint*> GetMapPointMatches();
+    // returns number of MapPoints inside this KF which has more than minObs observations
     int TrackedMapPoints(const int &minObs);
     MapPoint* GetMapPoint(const size_t &idx);
 
@@ -214,12 +222,16 @@ protected:
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;
 
+    // Stores all co-visibility information as long as weight>0
     std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
+    // Stores KF pointers of co-visibility graphy, i.e. weight>=15
     std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
+    // Stores weights pointers of co-visibility graphy, i.e. weight>=15
     std::vector<int> mvOrderedWeights;
 
     // Spanning Tree and Loop Edges
     bool mbFirstConnection;
+    // Every KF has ONE parent KF, but may have N children KFs
     KeyFrame* mpParent;
     std::set<KeyFrame*> mspChildrens;
     std::set<KeyFrame*> mspLoopEdges;
