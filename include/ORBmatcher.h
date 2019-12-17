@@ -43,16 +43,19 @@ public:
     // Computes the Hamming distance between two ORB descriptors
     static int DescriptorDistance(const cv::Mat &a, const cv::Mat &b);
 
-    // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
-    // Used to track the local map (Tracking)
+    // Search matches between current Frame keypoints and projected MapPoints. Returns number of matches
+    // Used to track the local map (Tracking) after obtaining an initial estimation of the camera pose and matching
+    // See Tracking::SearchLocalPoints()
     int SearchByProjection(Frame &F, const std::vector<MapPoint*> &vpMapPoints, const float th=3);
 
     // Project MapPoints tracked in last frame into the current frame and search matches.
-    // Used to track from previous frame (Tracking)
+    // Used to track from previous frame (Tracking) and obtain an initial estimation of the camera pose and matching
+    // See Tracking::TrackWithMotionModel()
     int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
 
     // Project MapPoints seen in KeyFrame into the Frame and search matches.
     // Used in relocalisation (Tracking)
+    // See Tracking::Relocalization()
     int SearchByProjection(Frame &CurrentFrame, KeyFrame* pKF, const std::set<MapPoint*> &sAlreadyFound, const float th, const int ORBdist);
 
     // Project MapPoints using a Similarity Transformation and search matches.
@@ -62,6 +65,7 @@ public:
     // Search matches between MapPoints in a KeyFrame and ORB in a Frame.
     // Brute force constrained to ORB that belong to the same vocabulary node (at a certain level)
     // Used in Relocalisation and Loop Detection
+    // See Tracking::TrackReferenceKeyFrame()
     int SearchByBoW(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
     int SearchByBoW(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
 

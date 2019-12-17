@@ -51,7 +51,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
     for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
     {
         MapPoint* pMP = vpMapPoints[iMP];
-        if(!pMP->mbTrackInView)
+        if(!pMP->mbTrackInView) // ignore this MP if it's not inside the fov of the frame
             continue;
 
         if(pMP->isBad())
@@ -59,12 +59,13 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
 
         const int &nPredictedLevel = pMP->mnTrackScaleLevel;
 
-        // The size of the window will depend on the viewing direction
+        // The size of the window will depend on the viewing direction, the bigger the viewing angle, the bigger the searching radius
         float r = RadiusByViewingCos(pMP->mTrackViewCos);
 
         if(bFactor)
             r*=th;
 
+        // TODO: why only search KeyPoints within [nPredictedLevel-1, nPredictedLevel], not [nPredictedLevel-1, nPredictedLevel+1] or even more?
         const vector<size_t> vIndices =
                 F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
 
@@ -84,6 +85,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
         {
             const size_t idx = *vit;
 
+            // TODO: why MPs with observations should be excluded?
             if(F.mvpMapPoints[idx])
                 if(F.mvpMapPoints[idx]->Observations()>0)
                     continue;
@@ -130,7 +132,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
 
 float ORBmatcher::RadiusByViewingCos(const float &viewCos)
 {
-    if(viewCos>0.998)
+    if(viewCos>0.998)   // arccos(0.998)=3.624 degrees
         return 2.5;
     else
         return 4.0;
@@ -1342,12 +1344,13 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
     const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
 
-    const cv::Mat twc = -Rcw.t()*tcw;
+    const cv::Mat twc = -Rcw.t()*tcw;   // Basing on T.t()*T = I equation, or Pc = Rcw*Pw + tcw => Pw = Rcw.t()*(Pc-tcw) = Rcw.t()*Pc + (-Rcw.t()*tcw)
 
     const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3);
     const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3);
 
-    const cv::Mat tlc = Rlw*twc+tlw;
+    // Vector from LastFrame to CurrentFrame expressed in LastFrame (i.e. from LastFrame's perspective)
+    const cv::Mat tlc = Rlw*twc+tlw;    // Pl = Tlc*Pc = Tlw*Pw, Pw = Tcw.t()*Pc
 
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;

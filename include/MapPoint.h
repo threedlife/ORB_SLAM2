@@ -87,7 +87,10 @@ public:
 
     float GetMinDistanceInvariance();
     float GetMaxDistanceInvariance();
-    int PredictScale(const float &currentDist, KeyFrame*pKF);
+    
+    // Returns a predicted pyramid scale in which a MapPoint at currentDist will likely appear in the (Key)Frame
+    int PredictScale(const float &currentDist, KeyFrame *pKF);
+    // Returns a predicted pyramid scale in which a MapPoint at currentDist will likely appear in the Frame
     int PredictScale(const float &currentDist, Frame* pF);
 
 public:
@@ -98,9 +101,13 @@ public:
     int nObs;
 
     // Variables used by the tracking
+    // u coordinate (in pixel) of the MapPoint
     float mTrackProjX;
+    // v coordinate (in pixel) of the MapPoint
     float mTrackProjY;
+    // u coordinate (in pixel) of the MapPoint in the right image of Stereo mode
     float mTrackProjXR;
+    // Set by Frame::isInFrustum(), true when the MapPoint inside the FOV of the Frame
     bool mbTrackInView;
     int mnTrackScaleLevel;
     float mTrackViewCos;
