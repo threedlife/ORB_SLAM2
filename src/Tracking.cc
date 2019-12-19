@@ -296,6 +296,7 @@ void Tracking::Track()
         // System is initialized. Track Frame.
         bool bOK;
 
+        // Step 1: coarse pose estimation
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if(!mbOnlyTracking)
         {
@@ -307,6 +308,7 @@ void Tracking::Track()
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 
+                // If 1) it is the first frame after init, or 2) after relocalization, in both cases no valid velocity exists
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
                     bOK = TrackReferenceKeyFrame();
@@ -315,7 +317,7 @@ void Tracking::Track()
                 {
                     bOK = TrackWithMotionModel();
                     if(!bOK)
-                        bOK = TrackReferenceKeyFrame();
+                        bOK = TrackReferenceKeyFrame();     // just in case big motions
                 }
             }
             else
@@ -397,6 +399,7 @@ void Tracking::Track()
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
+        // Step 2: fine pose estimation
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
