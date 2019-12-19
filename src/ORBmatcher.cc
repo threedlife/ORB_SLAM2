@@ -171,7 +171,8 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
     vector<int> rotHist[HISTO_LENGTH];
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH / 360.0f;
 
     // We perform the matching over ORB that belong to the same vocabulary node (at a certain level)
     DBoW2::FeatureVector::const_iterator KFit = vFeatVecKF.begin();
@@ -240,7 +241,6 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
                             float rot = kp.angle-F.mvKeys[bestIdxF].angle;
                             if(rot<0.0)
                                 rot += 360.0f;
-                            // BUGFIX: rot*factor -> rot/(360*factor)
                             int bin = round(rot*factor);
                             if(bin==HISTO_LENGTH)
                                 bin=0;
@@ -413,7 +413,8 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
     vector<int> rotHist[HISTO_LENGTH];
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH / 360.0f;
 
     vector<int> vMatchedDistance(F2.mvKeysUn.size(),INT_MAX);
     vector<int> vnMatches21(F2.mvKeysUn.size(),-1);
@@ -478,7 +479,6 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
                     float rot = F1.mvKeysUn[i1].angle-F2.mvKeysUn[bestIdx2].angle;
                     if(rot<0.0)
                         rot+=360.0f;
-                    // BUGFIX: rot*factor -> rot/(360*factor)
                     int bin = round(rot*factor);
                     if(bin==HISTO_LENGTH)
                         bin=0;
@@ -542,7 +542,8 @@ int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
 
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH / 360.0f;
 
     int nmatches = 0;
 
@@ -611,7 +612,6 @@ int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
                             float rot = vKeysUn1[idx1].angle-vKeysUn2[bestIdx2].angle;
                             if(rot<0.0)
                                 rot += 360.0f;
-                            // BUGFIX: rot*factor -> rot/(360*factor)
                             int bin = round(rot*factor);
                             if(bin==HISTO_LENGTH)
                                 bin=0;
@@ -686,7 +686,8 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
 
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH / 360.0f;
 
     DBoW2::FeatureVector::const_iterator f1it = vFeatVec1.begin();
     DBoW2::FeatureVector::const_iterator f2it = vFeatVec2.begin();
@@ -771,7 +772,6 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
                         float rot = kp1.angle-kp2.angle;
                         if(rot<0.0)
                             rot += 360.0f;
-                        // BUGFIX: rot*factor -> rot/(360*factor)
                         int bin = round(rot*factor);
                         if(bin==HISTO_LENGTH)
                             bin=0;
@@ -1339,7 +1339,8 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     vector<int> rotHist[HISTO_LENGTH];
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH/360.0f;
 
     const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
     const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
@@ -1350,8 +1351,9 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3);
 
     // Vector from LastFrame to CurrentFrame expressed in LastFrame (i.e. from LastFrame's perspective)
-    const cv::Mat tlc = Rlw*twc+tlw;    // Pl = Tlc*Pc = Tlw*Pw, Pw = Tcw.t()*Pc
+    const cv::Mat tlc = Rlw * twc + tlw; // Pl = Rlc*Pc + tlc, assuming Pc is origin and = [0,0,0], tlc means the vector from LF to CF expressed in LF's cooridinate
 
+    // In non-Mono modes (TODO: why not Mono mode too?), determine moving direction, i.e. forward if Z > mb, backward if -Z > mb
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
 
@@ -1390,7 +1392,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 vector<size_t> vIndices2;
 
                 if(bForward)
-                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);   // KeyPoints getting closer/bigger when moving forward, thus search for higher level pyramid maps
                 else if(bBackward)
                     vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, 0, nLastOctave);
                 else
@@ -1408,6 +1410,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 {
                     const size_t i2 = *vit;
                     if(CurrentFrame.mvpMapPoints[i2])
+                        // TODO: observations>0 not necessarily mean the MP is covisible by CurrentFrame and LastFrame
                         if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
                             continue;
 
@@ -1437,10 +1440,11 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                     if(mbCheckOrientation)
                     {
-                        float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
+                        float rot = LastFrame.mvKeysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle; //!< computed orientation of the keypoint (-1 if not applicable);
+                                                                                                        //!< it's in [0,360) degrees and measured relative to
+                                                                                                        //!< image coordinate system, ie in clockwise.
                         if(rot<0.0)
                             rot += 360.0f;
-                        // BUGFIX: rot*factor -> rot/(360*factor)
                         int bin = round(rot*factor);
                         if(bin==HISTO_LENGTH)
                             bin=0;
@@ -1489,7 +1493,8 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
     vector<int> rotHist[HISTO_LENGTH];
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
+    // BUGFIX: rot*factor -> rot/(360*factor)
+    const float factor = HISTO_LENGTH/360.0f;
 
     const vector<MapPoint*> vpMPs = pKF->GetMapPointMatches();
 
@@ -1570,7 +1575,6 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
                         float rot = pKF->mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
                         if(rot<0.0)
                             rot += 360.0f;
-                        // BUGFIX: rot*factor -> rot/(360*factor)
                         int bin = round(rot*factor);
                         if(bin==HISTO_LENGTH)
                             bin=0;

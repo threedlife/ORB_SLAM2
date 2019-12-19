@@ -99,6 +99,7 @@ protected:
 
     float RadiusByViewingCos(const float &viewCos);
 
+    // Compute top 3 hist index and set the index to -1 if it's <10% of Max1
     void ComputeThreeMaxima(std::vector<int>* histo, const int L, int &ind1, int &ind2, int &ind3);
 
     float mfNNratio;

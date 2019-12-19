@@ -3,7 +3,7 @@
         {
             "type": "shell",
             "label": "g++ build active file",
-            "command": "cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4",
+            "command": "cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j",
             "args": [],
             // "options": {
             //     "cwd": "/usr/bin"
