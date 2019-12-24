@@ -423,6 +423,7 @@ void Tracking::Track()
         // Update drawer
         mpFrameDrawer->Update(this);
 
+        // Step 3: determine if a new KF shall be inserted
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
@@ -810,7 +811,7 @@ void Tracking::UpdateLastFrame()
     KeyFrame* pRef = mLastFrame.mpReferenceKF;
     cv::Mat Tlr = tracked_frames.back().relative_frame_pose;
 
-    mLastFrame.SetPose(Tlr*pRef->GetPose());
+    mLastFrame.SetPose(Tlr*pRef->GetPose());    // Tlr*Trw = Tlw
 
     if(mnLastKeyFrameId==mLastFrame.mnId || mSensor==System::MONOCULAR || !mbOnlyTracking)
         return;
@@ -1265,6 +1266,7 @@ void Tracking::UpdateLocalKeyFrames()
     mvpLocalKeyFrames.clear();
     mvpLocalKeyFrames.reserve(3*keyframeCounter.size());
 
+    // Step 1: get all covisible KFs
     // All keyframes that observe a map point are included in the local map. Also check which keyframe shares most points
     for(map<KeyFrame*,int>::const_iterator it=keyframeCounter.begin(), itEnd=keyframeCounter.end(); it!=itEnd; it++)
     {
@@ -1283,7 +1285,9 @@ void Tracking::UpdateLocalKeyFrames()
         pKF->mnTrackReferenceForFrame = mCurrentFrame.mnId;
     }
 
-
+    // Step 2.1: include best 10 neighboring KFs of each KF from step 1
+    // Step 2.2: include children KFs of each KF from step 1
+    // Step 2.3: include parent KF of each KF from step 1
     // Include also some not-already-included keyframes that are neighbors to already-included keyframes
     for(vector<KeyFrame*>::const_iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++)
     {

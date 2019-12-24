@@ -148,7 +148,9 @@ public:
     std::vector<float> mvDepth;
 
     // Bag of Words Vector structures.
+    // Stores in map<WordId, WordValue> format, WordId is the id assigned to a leaf node (i.e. a word), WordValue is weight. (leaf node = word, is a subset of nodes)
     DBoW2::BowVector mBowVec;
+    // Stores in map<NodeId, std::vector<unsigned int> > format, NodeId is the id of a node at a given level (see levelsup), 2nd value is a vector of feature/keypoint id inside this frame
     DBoW2::FeatureVector mFeatVec;
 
     // ORB descriptor, each row associated to a keypoint.
@@ -173,7 +175,7 @@ public:
     static long unsigned int nNextId;
     long unsigned int mnId;
 
-    // Reference Keyframe.
+    // Reference Keyframe, i.e. best covisible KF
     KeyFrame* mpReferenceKF;
 
     // Scale pyramid info.

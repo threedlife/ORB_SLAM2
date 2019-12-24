@@ -3,7 +3,7 @@
         {
             "type": "shell",
             "label": "g++ build active file",
-            "command": "cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j",
+            "command": "cd ~/ouyang/work/ORB_SLAM2/build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j6",
             "args": [],
             // "options": {
             //     "cwd": "/usr/bin"

@@ -187,6 +187,9 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
             const vector<unsigned int> vIndicesKF = KFit->second;
             const vector<unsigned int> vIndicesF = Fit->second;
 
+            // Step 1: iterate features/keypoints with same NodeId at certain level of the k-means tree, relatively smaller number of features to match comparing brutal force
+            // Step 2: compute two best matches for each feature, and check if bestDist1 is distinctively smaller than bestDist2
+            // Step 3: check orientations of all matched pairs, exclude those pairs whose angle changes fall outside top 3 histogram bins (since rotation of features between two frames shall be generally consistent)
             for(size_t iKF=0; iKF<vIndicesKF.size(); iKF++)
             {
                 const unsigned int realIdxKF = vIndicesKF[iKF];
@@ -210,7 +213,7 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
                     const unsigned int realIdxF = vIndicesF[iF];
 
                     if(vpMapPointMatches[realIdxF])
-                        continue;
+                        continue;   //ignore those already matched features/MPs
 
                     const cv::Mat &dF = F.mDescriptors.row(realIdxF);
 
@@ -238,7 +241,8 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
 
                         if(mbCheckOrientation)
                         {
-                            float rot = kp.angle-F.mvKeys[bestIdxF].angle;
+                            // BUGFIX: F.mvKeys -> F.mvKeysUn
+                            float rot = kp.angle-F.mvKeysUn[bestIdxF].angle;
                             if(rot<0.0)
                                 rot += 360.0f;
                             int bin = round(rot*factor);
@@ -1410,7 +1414,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 {
                     const size_t i2 = *vit;
                     if(CurrentFrame.mvpMapPoints[i2])
-                        // TODO: observations>0 not necessarily mean the MP is covisible by CurrentFrame and LastFrame
+                        // observations>0 means the MP is already matched in previous iterations
                         if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
                             continue;
 

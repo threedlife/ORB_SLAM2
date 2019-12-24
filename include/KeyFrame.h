@@ -150,6 +150,7 @@ public:
     const float mfGridElementHeightInv;
 
     // Variables used by the tracking
+    // mnTrackReferenceForFrame to avoid adding duplicate KFs for tracking current frame, see UpdateLocalKeyFrames(), UpdateLocalPoints()
     long unsigned int mnTrackReferenceForFrame;
     long unsigned int mnFuseTargetForKF;
 

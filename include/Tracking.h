@@ -133,14 +133,29 @@ protected:
     void CreateInitialMapMonocular();
 
     void CheckReplacedInLastFrame();
+
+    // Compute initial (coarse) pose of current frame basing on matches in reference KF
+    // Step 1: set the pose to last frame; 
+    // Step 2: search matches in reference KF using BOW
+    // Step 3: g2o optimization to compute pose and label outliers
     bool TrackReferenceKeyFrame();
+
+    // Update last frame for TrackWithMotionModel(): 1) compute pose Tlw basing on tracked_frames; 2) add temporal new MapPoints (those untracked or unmatched MPs of last frame) with small depth for RGBD and Stereo modes
+    // It provides more candiate matching keypoints for TrackWithMotionModel()
+    // Note that these new temporal MPs (mlpTemporalPoints) will not be added to Map, and will be cleared at the end of tracking
     void UpdateLastFrame();
+
+    // Compute initial (coarse) pose of current frame basing on velocity and pose of last frame
+    // Step 1: set the pose to velocity * Tlw;
+    // Step 2: search matches in last frame using SearchByProjection()
+    // Step 3: g2o optimization to compute pose and label outliers
     bool TrackWithMotionModel();
 
     bool Relocalization();
 
     void UpdateLocalMap();
     void UpdateLocalPoints();
+    // Include covisible KFs, neighboring/children/parent KFs of the covisible KFs into the mvpLocalKeyFrames for TrackLocalMap()
     void UpdateLocalKeyFrames();
 
     bool TrackLocalMap();
@@ -171,6 +186,7 @@ protected:
     Initializer* mpInitializer;
 
     //Local Map
+    // best covisible KF
     KeyFrame* mpReferenceKF;
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
