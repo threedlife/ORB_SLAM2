@@ -62,10 +62,11 @@ public:
     int GetIndexInKeyFrame(KeyFrame* pKF);
     bool IsInKeyFrame(KeyFrame* pKF);
 
+    // Inform frames that can observe this MP that this MP is deleted
     void SetBadFlag();
     bool isBad();
     
-    // Replace MP after loop closure
+    // Update MP and KF association after loop closure
     void Replace(MapPoint* pMP);    
     MapPoint* GetReplaced();
 
@@ -111,6 +112,7 @@ public:
     bool mbTrackInView;
     int mnTrackScaleLevel;
     float mTrackViewCos;
+    // mnTrackReferenceForFrame to avoid adding duplicate MPs for tracking current frame, see UpdateLocalKeyFrames(), UpdateLocalPoints()
     long unsigned int mnTrackReferenceForFrame;
     long unsigned int mnLastFrameSeen;
 

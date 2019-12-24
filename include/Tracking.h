@@ -153,10 +153,12 @@ protected:
 
     bool Relocalization();
 
+    // Include more KFs and MPs for TrackLocalMap(), see UpdateLocalKeyFrames() and UpdateLocalPoints()
     void UpdateLocalMap();
-    void UpdateLocalPoints();
-    // Include covisible KFs, neighboring/children/parent KFs of the covisible KFs into the mvpLocalKeyFrames for TrackLocalMap()
+    // Include covisible KFs and neighboring/children/parent KFs of the covisible KFs into the mvpLocalKeyFrames for TrackLocalMap()
     void UpdateLocalKeyFrames();
+    // Include MPs of each KFs included by UpdateLocalKeyFrames() into the mvpLocalMapPoints for TrackLocalMap()
+    void UpdateLocalPoints();
 
     bool TrackLocalMap();
     void SearchLocalPoints();

@@ -456,7 +456,7 @@ void Tracking::Track()
             for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
             {
                 MapPoint* pMP = *lit;
-                delete pMP;
+                delete pMP; // Delete those temporal MPs created by UpdateLastFrame()
             }
             mlpTemporalPoints.clear();
 
@@ -1163,6 +1163,7 @@ void Tracking::SearchLocalPoints()
             {
                 pMP->IncreaseVisible();
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+                // mark this MP, no need to SearchByProjection since this MP is already in current frame
                 pMP->mbTrackInView = false;
             }
         }
@@ -1174,11 +1175,12 @@ void Tracking::SearchLocalPoints()
     for(vector<MapPoint*>::iterator vit=mvpLocalMapPoints.begin(), vend=mvpLocalMapPoints.end(); vit!=vend; vit++)
     {
         MapPoint* pMP = *vit;
-        if(pMP->mnLastFrameSeen == mCurrentFrame.mnId)
+        if(pMP->mnLastFrameSeen == mCurrentFrame.mnId)  // exclude MPs already in current frame
             continue;
         if(pMP->isBad())
             continue;
         // Project (this fills MapPoint variables for matching)
+        // isInFrustum() will set pMP->mbTrackInView to false if not inside FOV of current frame
         if(mCurrentFrame.isInFrustum(pMP,0.5))
         {
             pMP->IncreaseVisible();
