@@ -110,6 +110,9 @@ int main(int argc, char **argv)
     {
         // Read image from file
         uvcCap >> im;
+        // cout << std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count() << endl;
+        cout.precision(std::numeric_limits<double>::max_digits10);
+        cout << uvcCap.get(cv::CAP_PROP_POS_MSEC) << endl << endl;
 
         if(im.empty())
         {
